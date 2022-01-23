@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
+using Unity.VisualScripting;
 
 /// <summary> Primary user interface manager. </summary>
 public class InventoryManager : MonoBehaviour
@@ -153,8 +154,8 @@ public class InventoryManager : MonoBehaviour
          * this is that whenever we press the button, CreateItem() will
          * be called.
          */
-        
-        
+        mItemCreateButton = itemDetails.Q<Button>("ItemDetailButtonCreate");
+        mItemCreateButton.clicked += () => CreateItem();
         
         
         await UniTask.WaitForEndOfFrame();
@@ -356,9 +357,17 @@ public class InventoryManager : MonoBehaviour
         
         if (item == null)
         { // We have no item selected -> Provide some default information.
+            mItemDetailName.text = "No item";
+            mItemDetailDescription.text = "No description";
+            mItemDetailCost.text = "0";
+            mItemCreateButton.SetEnabled(false);
         }
         else
         { // We have item selected -> Use the item information.
+            mItemDetailName.text = item.definition.readableName;
+            mItemDetailDescription.text = item.definition.readableDescription;
+            mItemDetailCost.text = item.definition.cost.ToString();
+            mItemCreateButton.SetEnabled(item.definition.cost <= availableCurrency);
         }
         
         selectedItem = item;
@@ -391,8 +400,14 @@ public class InventoryManager : MonoBehaviour
          * it from the cost (itemDefinition.cost) from availableCurrency property.
          * These items are not cheap to make!
          */
-        
+        if (selectedItem == null) return false;
         var itemDefinition = selectedItem?.definition;
+        if(itemDefinition.cost <= availableCurrency){ 
+            var createdObj = Instantiate(itemDefinition.prefab, createDestination.transform);
+            if (createdObj == null) return false;
+            availableCurrency -= itemDefinition.cost;
+            return true;
+        }
         
         return false;
     }
